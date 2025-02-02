@@ -1,19 +1,46 @@
 pipeline {
     agent any
+    parameters {
+        choice(name: 'DEPLOY_OPTION', choices: ['Deploy any branch', 'Deploy to develop', 'Deploy to master'], description: 'Select deployment option')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Enter the branch name')
+    }
+    environment {
+        REPO_URL = 'https://github.com/bespalhuk/dockerized.git'
+        DEV_CLUSTER = 'dev-cluster'
+        PROD_CLUSTER = 'prod-cluster'
+    }
     stages {
-        stage('Clone Repository') {
+        stage('--- DETERMINE CLUSTER ---') {
             steps {
-                git branch: 'master', credentialsId: 'bespalhuk', url: 'https://github.com/bespalhuk/jenkins.git'
+                script {
+                    if (params.DEPLOY_OPTION == 'Deploy to master') {
+                        env.TARGET_CLUSTER = PROD_CLUSTER
+                    } else {
+                        env.TARGET_CLUSTER = DEV_CLUSTER
+                    }
+                    echo "Deploying to ${env.TARGET_CLUSTER}"
+                }
             }
         }
-        stage('Build') {
+
+        stage('--- CHECKOUT CODE ---') {
             steps {
-                echo 'Building the project...'
+                git branch: params.BRANCH_NAME, url: env.REPO_URL
             }
         }
-        stage('Deploy') {
+
+        stage('--- BUILD ---') {
             steps {
-                echo 'Deploying the project...'
+                sh './gradlew clean build'
+            }
+        }
+
+        stage('--- DEPLOY TO MINIKUBE ---') {
+            steps {
+                script {
+                    sh "kubectl config use-context ${env.TARGET_CLUSTER}"
+                    sh "kubectl apply -f k8s/deployment.yaml"
+                }
             }
         }
     }
