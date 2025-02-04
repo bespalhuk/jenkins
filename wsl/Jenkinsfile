@@ -1,0 +1,127 @@
+pipeline {
+    agent any
+    parameters {
+        choice(name: 'PROJECT', choices: ['dockerized'], description: 'Select project')
+        choice(name: 'CLUSTER', choices: ['Deploy to dev', 'Deploy to prod'], description: 'Select cluster')
+        string(name: 'BRANCH', description: 'Enter the branch name')
+    }
+    environment {
+        REPOS = [
+            dockerized: 'https://github.com/bespalhuk/dockerized.git'
+        ]
+        DEV_CLUSTER = 'dev-cluster'
+        PROD_CLUSTER = 'prod-cluster'
+    }
+    stages {
+        stage('--- DETERMINE CLUSTER ---') {
+            steps {
+                script {
+                    env.TARGET_CLUSTER = params.CLUSTER == 'Deploy to dev' ? DEV_CLUSTER : PROD_CLUSTER
+                    echo "Deploying to ${env.TARGET_CLUSTER}"
+                }
+            }
+        }
+
+        stage('--- CHECKOUT CODE ---') {
+            steps {
+                script {
+                    git branch: params.BRANCH, url: REPOS[params.PROJECT]
+                }
+            }
+        }
+
+        stage('--- UPDATE VERSION: major ---') {
+            when {
+                expression { false }
+            }
+            steps {
+                script {
+                    echo "Skipping for now."
+                }
+            }
+        }
+
+        stage('--- UPDATE VERSION: minor ---') {
+            when {
+                expression { params.CLUSTER == 'Deploy to prod' }
+            }
+            steps {
+                script {
+                    def properties = "gradle.properties"
+                    def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
+                    def (major, minor, patch) = curVersion.tokenize('.')*.toInteger()
+                    minor++
+                    patch = 0
+                    def newVersion = "${major}.${minor}.${patch}"
+
+                    sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
+                    sh "git config --global user.email 'jenkins@example.com'"
+                    sh "git config --global user.name 'Jenkins'"
+                    sh "git add ${properties}"
+                    sh "git commit -m 'Bump version from ${curVersion} to ${newVersion}'"
+                    sh "git push origin master"
+                    sh "git checkout develop"
+                    sh "git merge master"
+                    sh "git push origin develop"
+
+                    env.VERSION = newVersion
+                }
+            }
+        }
+
+        stage('--- UPDATE VERSION: patch ---') {
+            when {
+                expression { params.CLUSTER == 'Deploy to dev' }
+            }
+            steps {
+                script {
+                    def properties = "gradle.properties"
+                    def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
+                    def (major, minor, patch) = curVersion.tokenize('.')*.toInteger()
+                    patch++
+                    def newVersion = "${major}.${minor}.${patch}"
+
+                    sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
+                    sh "git config --global user.email 'jenkins@example.com'"
+                    sh "git config --global user.name 'Jenkins'"
+                    sh "git add ${properties}"
+                    sh "git commit -m 'Bump version from ${curVersion} to ${newVersion}'"
+                    sh "git push origin ${params.BRANCH}"
+
+                    env.VERSION = newVersion
+                }
+            }
+        }
+
+        stage('--- CREATE TAG ---') {
+            when {
+                expression { params.CLUSTER == 'Deploy to prod' }
+            }
+            steps {
+                script {
+                    sh "git tag ${env.VERSION}"
+                    sh "git push origin --tags"
+                }
+            }
+        }
+
+        stage('--- BUILD DOCKER IMAGE ---') {
+            steps {
+                script {
+                    sh "eval $(minikube docker-env)"
+                    sh "docker build -t ${params.PROJECT}:${env.VERSION} ."
+                }
+            }
+        }
+
+        stage('--- DEPLOY TO MINIKUBE ---') {
+            steps {
+                script {
+                    sh "kubectl config use-context ${env.TARGET_CLUSTER}"
+                    sh "kubectl set image deployment/${params.PROJECT} ${params.PROJECT}=${params.PROJECT}:${env.VERSION}"
+                    sh "kubectl expose deployment ${params.PROJECT} --type=NodePort --port=8080"
+                }
+            }
+        }
+    }
+}
