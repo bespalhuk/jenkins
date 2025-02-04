@@ -50,7 +50,12 @@ pipeline {
                 script {
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
-                    def (major, minor, patch) = curVersion.tokenize('.')*.toInteger()
+
+                    def versionTokens = curVersion.tokenize('.')
+                    def major = versionTokens[0].toInteger()
+                    def minor = versionTokens[1].toInteger()
+                    def patch = versionTokens[2].toInteger()
+
                     minor++
                     patch = 0
                     def newVersion = "${major}.${minor}.${patch}"
@@ -78,7 +83,12 @@ pipeline {
                 script {
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
-                    def (major, minor, patch) = curVersion.tokenize('.')*.toInteger()
+
+                    def versionTokens = curVersion.tokenize('.')
+                    def major = versionTokens[0].toInteger()
+                    def minor = versionTokens[1].toInteger()
+                    def patch = versionTokens[2].toInteger()
+
                     patch++
                     def newVersion = "${major}.${minor}.${patch}"
 
