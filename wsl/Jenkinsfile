@@ -7,7 +7,7 @@ pipeline {
     }
     environment {
         REPOS = [
-            dockerized: 'https://github.com/bespalhuk/dockerized.git'
+            'dockerized': 'https://github.com/bespalhuk/dockerized.git'
         ]
         DEV_CLUSTER = 'dev-cluster'
         PROD_CLUSTER = 'prod-cluster'
