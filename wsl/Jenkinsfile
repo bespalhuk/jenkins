@@ -16,8 +16,8 @@ pipeline {
         stage('--- DETERMINE CLUSTER ---') {
             steps {
                 script {
+                    echo "Cluster chosen: ${params.CLUSTER}"
                     env.TARGET_CLUSTER = params.CLUSTER == 'Deploy to dev' ? DEV_CLUSTER : PROD_CLUSTER
-                    echo "Deploying to ${env.TARGET_CLUSTER}"
                 }
             }
         }
@@ -25,13 +25,15 @@ pipeline {
         stage('--- CHECKOUT CODE ---') {
             steps {
                 script {
+                    echo "Project chosen: ${params.PROJECT}."
+                    echo "Branch chosen: ${params.BRANCH}."
                     def repos = readJSON text: env.REPOS
                     git branch: params.BRANCH, url: repos[params.PROJECT]
                 }
             }
         }
 
-        stage('--- UPDATE VERSION: major ---') {
+        stage('--- BUMP VERSION: major ---') {
             when {
                 expression { false }
             }
@@ -42,12 +44,13 @@ pipeline {
             }
         }
 
-        stage('--- UPDATE VERSION: minor ---') {
+        stage('--- BUMP VERSION: minor ---') {
             when {
                 expression { params.CLUSTER == 'Deploy to prod' }
             }
             steps {
                 script {
+                    echo "Getting current version."
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
@@ -60,14 +63,18 @@ pipeline {
                     patch = 0
                     def newVersion = "${major}.${minor}.${patch}"
 
+                    echo "Updating new version."
                     sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
                     sh "git config --global user.email 'jenkins@example.com'"
                     sh "git config --global user.name 'Jenkins'"
                     sh "git add ${properties}"
+                    echo "Committing new version."
                     sh "git commit -m 'Bump version from ${curVersion} to ${newVersion}'"
+                    echo "Pushing new version to master."
                     sh "git push origin master"
                     sh "git checkout develop"
                     sh "git merge master"
+                    echo "Pushing new version to develop."
                     sh "git push origin develop"
 
                     env.VERSION = newVersion
@@ -75,12 +82,13 @@ pipeline {
             }
         }
 
-        stage('--- UPDATE VERSION: patch ---') {
+        stage('--- BUMP VERSION: patch ---') {
             when {
                 expression { params.CLUSTER == 'Deploy to dev' }
             }
             steps {
                 script {
+                    echo "Getting current version."
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
@@ -92,11 +100,14 @@ pipeline {
                     patch++
                     def newVersion = "${major}.${minor}.${patch}"
 
+                    echo "Updating new version."
                     sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
                     sh "git config --global user.email 'jenkins@example.com'"
                     sh "git config --global user.name 'Jenkins'"
                     sh "git add ${properties}"
+                    echo "Committing new version."
                     sh "git commit -m 'Bump version from ${curVersion} to ${newVersion}'"
+                    echo "Pushing new version to ${params.BRANCH}."
                     sh "git push origin ${params.BRANCH}"
 
                     env.VERSION = newVersion
@@ -110,6 +121,7 @@ pipeline {
             }
             steps {
                 script {
+                    echo "Creating tag ${env.VERSION}."
                     sh "git tag ${env.VERSION}"
                     sh "git push origin --tags"
                 }
@@ -119,15 +131,18 @@ pipeline {
         stage('--- BUILD DOCKER IMAGE ---') {
             steps {
                 script {
+                    echo "Building docker image ${params.PROJECT}:${env.VERSION}."
                     sh "eval \$(minikube docker-env)"
-                    sh "docker build -t ${params.PROJECT}:${env.VERSION} ."
+                    sh "docker build -t ${params.PROJECT}:${env.VERSION}."
                 }
             }
         }
 
-        stage('--- DEPLOY TO MINIKUBE ---') {
+        stage('--- DEPLOY TO KUBE ---') {
             steps {
                 script {
+                    echo "Deploying to cluster: ${env.TARGET_CLUSTER}."
+                    echo "Deploying image: ${params.PROJECT}:${env.VERSION}."
                     sh "kubectl config use-context ${env.TARGET_CLUSTER}"
                     sh "kubectl set image deployment/${params.PROJECT} ${params.PROJECT}=${params.PROJECT}:${env.VERSION}"
                     sh "kubectl expose deployment ${params.PROJECT} --type=NodePort --port=8080"
