@@ -6,9 +6,9 @@ pipeline {
         string(name: 'BRANCH', description: 'Enter the branch name')
     }
     environment {
-        REPOS = '{
+        REPOS = """{
             "dockerized" : "https://github.com/bespalhuk/dockerized.git"
-        }'
+        }"""
         DEV_CLUSTER = 'dev-cluster'
         PROD_CLUSTER = 'prod-cluster'
     }
