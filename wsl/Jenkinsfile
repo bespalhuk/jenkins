@@ -6,9 +6,9 @@ pipeline {
         string(name: 'BRANCH', description: 'Enter the branch name')
     }
     environment {
-        REPOS = [
-            'dockerized': 'https://github.com/bespalhuk/dockerized.git'
-        ]
+        REPOS = '{
+            "dockerized" : "https://github.com/bespalhuk/dockerized.git"
+        }'
         DEV_CLUSTER = 'dev-cluster'
         PROD_CLUSTER = 'prod-cluster'
     }
@@ -25,7 +25,8 @@ pipeline {
         stage('--- CHECKOUT CODE ---') {
             steps {
                 script {
-                    git branch: params.BRANCH, url: REPOS[params.PROJECT]
+                    def repos = readJSON text: env.REPOS
+                    git branch: params.BRANCH, url: repos[params.PROJECT]
                 }
             }
         }
