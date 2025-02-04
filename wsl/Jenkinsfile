@@ -108,7 +108,7 @@ pipeline {
         stage('--- BUILD DOCKER IMAGE ---') {
             steps {
                 script {
-                    sh "eval $(minikube docker-env)"
+                    sh "eval \$(minikube docker-env)"
                     sh "docker build -t ${params.PROJECT}:${env.VERSION} ."
                 }
             }
