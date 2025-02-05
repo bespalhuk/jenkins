@@ -16,7 +16,7 @@ pipeline {
         stage('--- DETERMINE CLUSTER ---') {
             steps {
                 script {
-                    echo "Cluster chosen: ${params.CLUSTER}"
+                    echo "Cluster chosen: ${params.CLUSTER}."
                     env.TARGET_CLUSTER = params.CLUSTER == 'Deploy to dev' ? DEV_CLUSTER : PROD_CLUSTER
                 }
             }
