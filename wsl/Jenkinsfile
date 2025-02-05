@@ -54,6 +54,7 @@ pipeline {
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
+                    echo "Tokenizing current version."
                     def versionTokens = curVersion.tokenize('.')
                     def major = versionTokens[0].toInteger()
                     def minor = versionTokens[1].toInteger()
@@ -72,8 +73,7 @@ pipeline {
                     sh "git commit -m 'Bump version from ${curVersion} to ${newVersion}'"
                     echo "Pushing new version to master."
                     sh "git push origin master"
-                    sh "git checkout develop"
-                    sh "git merge master"
+                    sh "git fetch origin && git checkout develop && git merge origin/master"
                     echo "Pushing new version to develop."
                     sh "git push origin develop"
 
@@ -92,6 +92,7 @@ pipeline {
                     def properties = "gradle.properties"
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
+                    echo "Tokenizing current version."
                     def versionTokens = curVersion.tokenize('.')
                     def major = versionTokens[0].toInteger()
                     def minor = versionTokens[1].toInteger()
@@ -133,7 +134,7 @@ pipeline {
                 script {
                     echo "Building docker image ${params.PROJECT}:${env.VERSION}."
                     sh "eval \$(minikube docker-env)"
-                    sh "docker build -t ${params.PROJECT}:${env.VERSION}."
+                    sh "docker build -t ${params.PROJECT}:${env.VERSION} ."
                 }
             }
         }
