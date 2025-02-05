@@ -28,7 +28,9 @@ pipeline {
                     echo "Project chosen: ${params.PROJECT}."
                     echo "Branch chosen: ${params.BRANCH}."
                     def repos = readJSON text: env.REPOS
-                    git branch: params.BRANCH, url: repos[params.PROJECT]
+                    def repoUrl = repos[params.PROJECT]
+                    echo "Repository URL: ${repoUrl}."
+                    git branch: params.BRANCH, url: repoUrl
                 }
             }
         }
