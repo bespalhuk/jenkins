@@ -6,9 +6,9 @@ pipeline {
         string(name: 'BRANCH', description: 'Enter the branch name')
     }
     environment {
-        REPOS = """{
-            "dockerized" : "https://github.com/bespalhuk/dockerized.git"
-        }"""
+        REPOS = '''{
+            "dockerized": "https://github.com/bespalhuk/dockerized.git"
+        }'''
         DEV_CLUSTER = 'dev-cluster'
         PROD_CLUSTER = 'prod-cluster'
     }
@@ -54,7 +54,7 @@ pipeline {
             steps {
                 script {
                     echo "Getting current version."
-                    def properties = "gradle.properties"
+                    def properties = 'gradle.properties'
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
                     echo "Tokenizing current version."
@@ -65,7 +65,7 @@ pipeline {
 
                     minor++
                     patch = 0
-                    def newVersion = "${major}.${minor}.${patch}"
+                    def newVersion = '${major}.${minor}.${patch}'
 
                     echo "Updating new version."
                     sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
@@ -92,7 +92,7 @@ pipeline {
             steps {
                 script {
                     echo "Getting current version."
-                    def properties = "gradle.properties"
+                    def properties = 'gradle.properties'
                     def curVersion = sh(script: "grep '^version=' ${properties} | cut -d'=' -f2", returnStdout: true).trim()
 
                     echo "Tokenizing current version."
@@ -102,7 +102,7 @@ pipeline {
                     def patch = versionTokens[2].toInteger()
 
                     patch++
-                    def newVersion = "${major}.${minor}.${patch}"
+                    def newVersion = '${major}.${minor}.${patch}'
 
                     echo "Updating new version."
                     sh "sed -i 's/^version=.*/version=${newVersion}/' ${properties}"
