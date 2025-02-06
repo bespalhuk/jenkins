@@ -6,9 +6,6 @@ pipeline {
         string(name: 'BRANCH', description: 'Enter the branch name')
     }
     environment {
-        REPOS = '''{
-            "dockerized": "https://github.com/bespalhuk/dockerized.git"
-        }'''
         DEV_CLUSTER = 'dev-cluster'
         PROD_CLUSTER = 'prod-cluster'
     }
@@ -27,11 +24,10 @@ pipeline {
                 script {
                     echo "Project chosen: ${params.PROJECT}."
                     echo "Branch chosen: ${params.BRANCH}."
-                    echo "Repos json: ${env.REPOS}."
 
-                    def slurper = new groovy.json.JsonSlurper()
-                    def repos = slurper.parseText(env.REPOS)
-                    echo "Repos: ${repos}."
+                    def repos = [
+                        dockerized:"https://github.com/bespalhuk/dockerized.git"
+                    ]
 
                     def repoUrl = repos[params.PROJECT]
                     echo "Repository URL: ${repoUrl}."
