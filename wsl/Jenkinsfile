@@ -32,7 +32,7 @@ pipeline {
                     def repoUrl = repos[params.PROJECT]
                     echo "Repository URL: ${repoUrl}."
 
-                    git branch: params.BRANCH, url: repoUrl, credentialsId: 'bespalhuk'
+                    git branch: params.BRANCH, url: repoUrl, credentialsId: 'github-ssh-key'
                 }
             }
         }
